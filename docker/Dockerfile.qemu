@@ -1,0 +1,81 @@
+FROM debian:trixie-20240513-slim AS libslirp-static
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# https://snapshot.debian.org/archive/debian/20240515T144351Z/
+ARG SNAPSHOT=20240515T144351Z
+
+RUN \
+  --mount=type=cache,target=/var/cache/apt,sharing=locked \
+  --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    : "Enabling snapshot" && \
+    sed -i -e '/Types: deb/ a\Snapshot: true' /etc/apt/sources.list.d/debian.sources && \
+    : "Enabling cache" && \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache && \
+    : "Fetching the snapshot and installing ca-certificates in one command" && \
+    apt install --update --snapshot "${SNAPSHOT}" -o Acquire::Check-Valid-Until=false -o Acquire::https::Verify-Peer=false -y ca-certificates && \
+    : "Install dependencies" && \
+    apt install --snapshot "${SNAPSHOT}" -y \
+      build-essential \
+      libglib2.0-dev \
+      meson \
+      ninja-build \
+      pkg-config \
+    && \
+    : "Clean up for improving reproducibility (optional)" && \
+    rm -rf /var/log/* /var/cache/ldconfig/aux-cache
+
+ARG LIBSLIRP_VERSION=v4.8.0
+ARG LIBSLIRP_SOURCE=https://gitlab.freedesktop.org/slirp/libslirp/-/archive/${LIBSLIRP_VERSION}/libslirp-${LIBSLIRP_VERSION}.tar.gz
+ARG LIBSLIRP_CHKSUM=sha256:2a98852e65666db313481943e7a1997abff0183bd9bea80caec1b5da89fda28c
+
+ADD --checksum=${LIBSLIRP_CHKSUM} ${LIBSLIRP_SOURCE} .
+
+RUN \
+  tar -xzf libslirp-${LIBSLIRP_VERSION}.tar.gz && rm -r libslirp-${LIBSLIRP_VERSION}.tar.gz && \
+  cd libslirp-${LIBSLIRP_VERSION} && \
+  meson setup -Ddefault_library=static build && \
+  ninja -Cbuild && \
+  mv ./build/libslirp.a /libslirp.a && \
+  cd .. && rm -r libslirp-${LIBSLIRP_VERSION}
+
+FROM debian:trixie-20240513-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# https://snapshot.debian.org/archive/debian/20240515T144351Z/
+ARG SNAPSHOT=20240515T144351Z
+
+RUN \
+  --mount=type=cache,target=/var/cache/apt,sharing=locked \
+  --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    : "Enabling snapshot" && \
+    sed -i -e '/Types: deb/ a\Snapshot: true' /etc/apt/sources.list.d/debian.sources && \
+    : "Enabling cache" && \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache && \
+    : "Fetching the snapshot and installing ca-certificates in one command" && \
+    apt install --update --snapshot "${SNAPSHOT}" -o Acquire::Check-Valid-Until=false -o Acquire::https::Verify-Peer=false -y ca-certificates && \
+    : "Install dependencies" && \
+    apt install --snapshot "${SNAPSHOT}" -y \
+        build-essential \
+        checkinstall \
+        git \
+        libglib2.0-dev \
+        libpixman-1-dev \
+        libslirp-dev \
+        ninja-build \
+        pkg-config \
+        python3-venv \
+    && \
+    : "Clean up for improving reproducibility (optional)" && \
+    rm -rf /var/log/* /var/cache/ldconfig/aux-cache
+
+COPY --from=libslirp-static libslirp.a .
+
+ARG LIBSLIRP_CHKSUM=a740ddca3fc10860c51330905cb94ffb0a083c625cd8dd2ba7c1d5d748e05e3d
+
+RUN \
+  echo "${LIBSLIRP_CHKSUM}  libslirp.a" | shasum -c && \
+  mv libslirp.a /lib/x86_64-linux-gnu/

@@ -1,8 +1,7 @@
 # SEV-SNP Dependencies
 
-## Branches
+This repository contains dependencies for [SEV-SNP](https://www.amd.com/en/developer/sev.html) (Secure Encrypted Virtualization - Secure Nested Paging) related projects.
 
-- [Builders](https://github.com/rikonor/sev-snp-deps/tree/builders)
-- [Linux Kernel](https://github.com/rikonor/sev-snp-deps/tree/linux-kernel)
-- [OVMF](https://github.com/rikonor/sev-snp-deps/tree/ovmf)
-- [QEMU](https://github.com/rikonor/sev-snp-deps/tree/qemu)
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

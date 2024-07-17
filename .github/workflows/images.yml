@@ -1,0 +1,142 @@
+name: images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docker/**
+
+env:
+  KERNEL: kernel
+
+jobs:
+  dockerfile-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        with:
+          filters: |
+            kernel: docker/Dockerfile.kernel
+            ovmf: docker/Dockerfile.ovmf
+            qemu: docker/Dockerfile.qemu
+    outputs:
+      kernel: ${{ steps.filter.outputs.kernel }}
+      ovmf: ${{ steps.filter.outputs.ovmf }}
+      qemu: ${{  steps.filter.outputs.qemu }}
+
+  builder-kernel:
+    runs-on: ubuntu-latest
+    needs: dockerfile-changes
+    if: needs.dockerfile-changes.outputs.kernel == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          docker buildx create \
+            --use \
+            --name builder \
+            --platform linux/amd64 \
+            --driver docker-container
+
+          docker buildx build \
+            -f docker/Dockerfile.kernel \
+            -t ghcr.io/dfinity/kernel-builder:${{ github.sha }} \
+            --platform linux/amd64 \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --output type=docker,dest=archive.tar,rewrite-timestamp=true \
+                .
+
+          docker load -i archive.tar
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Publish docker image
+        run: |
+          docker push ghcr.io/dfinity/kernel-builder:${{ github.sha }}
+
+  builder-ovmf:
+    runs-on: ubuntu-latest
+    needs: dockerfile-changes
+    if: needs.dockerfile-changes.outputs.ovmf == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          docker buildx create \
+            --use \
+            --name builder \
+            --platform linux/amd64 \
+            --driver docker-container
+
+          docker buildx build \
+            -f docker/Dockerfile.kernel \
+            -t ghcr.io/dfinity/ovmf-builder:${{ github.sha }} \
+            --platform linux/amd64 \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --output type=docker,dest=archive.tar,rewrite-timestamp=true \
+                .
+
+          docker load -i archive.tar
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Publish docker image
+        run: |
+          docker push ghcr.io/dfinity/ovmf-builder:${{ github.sha }}
+
+  builder-qemu:
+    runs-on: ubuntu-latest
+    needs: dockerfile-changes
+    if: needs.dockerfile-changes.outputs.qemu == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          docker buildx create \
+            --use \
+            --name builder \
+            --platform linux/amd64 \
+            --driver docker-container
+
+          docker buildx build \
+            -f docker/Dockerfile.kernel \
+            -t ghcr.io/dfinity/qemu-builder:${{ github.sha }} \
+            --platform linux/amd64 \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --output type=docker,dest=archive.tar,rewrite-timestamp=true \
+                .
+
+          docker load -i archive.tar
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Publish docker image
+        run: |
+          docker push ghcr.io/dfinity/qemu-builder:${{ github.sha }}

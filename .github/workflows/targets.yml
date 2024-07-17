@@ -1,0 +1,69 @@
+name: targets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - build/**
+      - image-ref/**
+
+jobs:
+  image-ref-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        with:
+          filters: |
+            kernel: image-ref/kernel.txt
+            ovmf: image-ref/ovmf.txt
+            qemu: image-ref/qemu.txt
+    outputs:
+      kernel: ${{ steps.filter.outputs.kernel }}
+      ovmf: ${{ steps.filter.outputs.ovmf }}
+      qemu: ${{  steps.filter.outputs.qemu }}
+
+  build-script-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        with:
+          filters: |
+            kernel: build/kernel.sh
+            ovmf: build/ovmf.sh
+            qemu: build/qemu.sh
+    outputs:
+      kernel: ${{ steps.filter.outputs.kernel }}
+      ovmf: ${{ steps.filter.outputs.ovmf }}
+      qemu: ${{  steps.filter.outputs.qemu }}
+
+  kernel:
+    runs-on: ubuntu-latest
+    needs: [image-ref-changes, build-script-changes]
+    if: needs.image-ref-changes.outputs.kernel == 'true' || needs.build-script-changes.outputs.kernel == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "builder-kernel:$(cat image-ref/kernel.txt)"
+
+  ovmf:
+    runs-on: ubuntu-latest
+    needs: [image-ref-changes, build-script-changes]
+    if: needs.image-ref-changes.outputs.ovmf == 'true' || needs.build-script-changes.outputs.ovmf == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "builder-ovmf:$(cat image-ref/ovmf.txt)"
+
+  qemu:
+    runs-on: ubuntu-latest
+    needs: [image-ref-changes, build-script-changes]
+    if: needs.image-ref-changes.outputs.qemu == 'true' || needs.build-script-changes.outputs.qemu == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          echo "builder-qemu:$(cat image-ref/qemu.txt)"
