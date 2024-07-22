@@ -71,7 +71,7 @@ jobs:
           path: ${{ github.workspace }}/upstream
 
       - name: Set builder from file
-        run: echo "BUILDER=$(cat ${{ github.workspace }}/local/image-ref/kernel.txt)" >> $GITHUB_ENV
+        run: echo "BUILDER_REF=$(cat ${{ github.workspace }}/local/image-ref/kernel.txt)" >> $GITHUB_ENV
 
       - name: Login to container registry
         run: |
@@ -91,8 +91,8 @@ jobs:
             -e KBUILD_BUILD_TIMESTAMP='1970-01-01' \
             -e KBUILD_BUILD_HOST='host' \
             -e SOURCE_DATE_EPOCH='0' \
-            ghcr.io/${{ env.BUILDER }} \
-              bash /local/build.sh
+            ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }} \
+              bash /local/build/kernel.sh
 
       - name: Publish
         uses: softprops/action-gh-release@v1
@@ -104,7 +104,7 @@ jobs:
           body: |
             | Name | Value |
             | ------------- | ------------- |
-            | Builder | `ghcr.io/${{ env.BUILDER }}` |
+            | Builder | `ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }}` |
             | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   ovmf:
@@ -134,7 +134,7 @@ jobs:
           submodules: true
 
       - name: Set builder from file
-        run: echo "BUILDER=$(cat ${{ github.workspace }}/local/image-ref/ovmf.txt)" >> $GITHUB_ENV
+        run: echo "BUILDER_REF=$(cat ${{ github.workspace }}/local/image-ref/ovmf.txt)" >> $GITHUB_ENV
 
       - name: Login to container registry
         run: |
@@ -150,8 +150,8 @@ jobs:
             -v ${{ github.workspace }}/out:/out \
             -e SOURCE_DIR="/upstream" \
             -e OUT_DIR="/out" \
-            ghcr.io/${{ env.BUILDER }} \
-              bash /local/build.sh
+            ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }} \
+              bash /local/build/ovmf.sh
 
       - name: Publish
         uses: softprops/action-gh-release@v1
@@ -163,7 +163,7 @@ jobs:
           body: |
             | Name | Value |
             | ------------- | ------------- |
-            | Builder | `ghcr.io/${{ env.BUILDER }}` |
+            | Builder | `ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }}` |
             | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   qemu:
@@ -193,7 +193,7 @@ jobs:
           submodules: true
 
       - name: Set builder from file
-        run: echo "BUILDER=$(cat ${{ github.workspace }}/local/image-ref/qemu.txt)" >> $GITHUB_ENV
+        run: echo "BUILDER_REF=$(cat ${{ github.workspace }}/local/image-ref/qemu.txt)" >> $GITHUB_ENV
 
       - name: Login to container registry
         run: |
@@ -209,8 +209,8 @@ jobs:
             -v ${{ github.workspace }}/build:/build -w /build \
             -e SOURCE_DIR="/upstream" \
             -e SOURCE_DATE_EPOCH=0 \
-            ghcr.io/${{ env.BUILDER }} \
-              bash /local/build.sh
+            ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }} \
+              bash /local/build/qemu.sh
 
       - name: Publish
         uses: softprops/action-gh-release@v1
@@ -222,5 +222,5 @@ jobs:
           body: |
             | Name | Value |
             | ------------- | ------------- |
-            | Builder | `ghcr.io/${{ env.BUILDER }}` |
+            | Builder | `ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }}` |
             | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
