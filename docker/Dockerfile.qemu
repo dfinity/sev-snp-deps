@@ -2,8 +2,8 @@ FROM debian:trixie-20240513-slim AS libslirp-static
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# https://snapshot.debian.org/archive/debian/20240515T144351Z/
-ARG SNAPSHOT=20240515T144351Z
+# https://snapshot.debian.org/archive/debian/20240722T143724Z/
+ARG SNAPSHOT=20240722T143724Z
 
 RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -44,8 +44,8 @@ FROM debian:trixie-20240513-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# https://snapshot.debian.org/archive/debian/20240515T144351Z/
-ARG SNAPSHOT=20240515T144351Z
+# https://snapshot.debian.org/archive/debian/20240722T143724Z/
+ARG SNAPSHOT=20240722T143724Z
 
 RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
