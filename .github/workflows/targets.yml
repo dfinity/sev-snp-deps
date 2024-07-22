@@ -43,27 +43,184 @@ jobs:
 
   kernel:
     runs-on: ubuntu-latest
+
     needs: [image-ref-changes, build-script-changes]
     if: needs.image-ref-changes.outputs.kernel == 'true' || needs.build-script-changes.outputs.kernel == 'true'
+
+    strategy:
+      matrix:
+        include:
+          - target: host
+            upstream: AMDESE/linux
+            ref: 05b10142ac6a1a3b02d4be018e119c2648d1da6c
+          - target: guest
+            upstream: AMDESE/linux
+            ref: a38297e3fb012ddfa7ce0321a7e5a8daeb1872b6
+
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          echo "builder-kernel:$(cat image-ref/kernel.txt)"
+      - name: Clone self
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/local
+
+      - name: Clone upstream
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.upstream }}
+          ref: ${{ matrix.ref }}
+          path: ${{ github.workspace }}/upstream
+
+      - name: Set builder from file
+        run: echo "BUILDER=$(cat ${{ github.workspace }}/local/image-ref/kernel.txt)" >> $GITHUB_ENV
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Build upstream
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/local:/local \
+            -v ${{ github.workspace }}/upstream:/upstream -w /upstream \
+            -v ${{ github.workspace }}/out:/out \
+            -e CONFIG_PATH="/local/cfg/.config" \
+            -e OUT_DIR="/out" \
+            -e LOCALVERSION="-snp-${{ matrix.target }}-$(echo ${{ matrix.ref }} | cut -c -7)" \
+            -e KBUILD_BUILD_TIMESTAMP='1970-01-01' \
+            -e KBUILD_BUILD_HOST='host' \
+            -e SOURCE_DATE_EPOCH='0' \
+            ghcr.io/${{ env.BUILDER }} \
+              bash /local/build.sh
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
+          tag_name: ${{ matrix.upstream }}-${{ matrix.ref }}
+          files: |
+            ${{ github.workspace }}/out/*
+          body: |
+            | Name | Value |
+            | ------------- | ------------- |
+            | Builder | `ghcr.io/${{ env.BUILDER }}` |
+            | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   ovmf:
     runs-on: ubuntu-latest
+
     needs: [image-ref-changes, build-script-changes]
     if: needs.image-ref-changes.outputs.ovmf == 'true' || needs.build-script-changes.outputs.ovmf == 'true'
+
+    strategy:
+      matrix:
+        include:
+          - upstream: AMDESE/ovmf
+            ref: 4b6ee06a090d956f80b4a92fb9bf03098a372f39
+
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          echo "builder-ovmf:$(cat image-ref/ovmf.txt)"
+      - name: Clone self
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/local
+
+      - name: Clone upstream
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.upstream }}
+          ref: ${{ matrix.ref }}
+          path: ${{ github.workspace }}/upstream
+          submodules: true
+
+      - name: Set builder from file
+        run: echo "BUILDER=$(cat ${{ github.workspace }}/local/image-ref/ovmf.txt)" >> $GITHUB_ENV
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Build upstream
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/local:/local \
+            -v ${{ github.workspace }}/upstream:/upstream -w /upstream \
+            -v ${{ github.workspace }}/out:/out \
+            -e SOURCE_DIR="/upstream" \
+            -e OUT_DIR="/out" \
+            ghcr.io/${{ env.BUILDER }} \
+              bash /local/build.sh
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
+          tag_name: ${{ matrix.upstream }}-${{ matrix.ref }}
+          files: |
+            ${{ github.workspace }}/out/OVMF.fd
+          body: |
+            | Name | Value |
+            | ------------- | ------------- |
+            | Builder | `ghcr.io/${{ env.BUILDER }}` |
+            | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   qemu:
     runs-on: ubuntu-latest
+
     needs: [image-ref-changes, build-script-changes]
     if: needs.image-ref-changes.outputs.qemu == 'true' || needs.build-script-changes.outputs.qemu == 'true'
+
+    strategy:
+      matrix:
+        include:
+          - upstream: AMDESE/qemu
+            ref: fb924a5139bff1d31520e007ef97b616af1e22a1
+
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          echo "builder-qemu:$(cat image-ref/qemu.txt)"
+      - name: Clone self
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/local
+
+      - name: Clone upstream
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.upstream }}
+          ref: ${{ matrix.ref }}
+          path: ${{ github.workspace }}/upstream
+          submodules: true
+
+      - name: Set builder from file
+        run: echo "BUILDER=$(cat ${{ github.workspace }}/local/image-ref/qemu.txt)" >> $GITHUB_ENV
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Build upstream
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/local:/local \
+            -v ${{ github.workspace }}/upstream:/upstream \
+            -v ${{ github.workspace }}/build:/build -w /build \
+            -e SOURCE_DIR="/upstream" \
+            -e SOURCE_DATE_EPOCH=0 \
+            ghcr.io/${{ env.BUILDER }} \
+              bash /local/build.sh
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
+          tag_name: ${{ matrix.upstream }}-${{ matrix.ref }}
+          files: |
+            ${{ github.workspace }}/build/qemu_*.deb
+          body: |
+            | Name | Value |
+            | ------------- | ------------- |
+            | Builder | `ghcr.io/${{ env.BUILDER }}` |
+            | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
