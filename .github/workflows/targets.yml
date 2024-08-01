@@ -57,7 +57,7 @@ jobs:
   kernel:
     runs-on: ubuntu-latest
 
-    needs: [image-ref-changes, build-script-changes]
+    needs: [image-ref-changes, build-script-changes, kernel-config-changes]
     if: needs.image-ref-changes.outputs.kernel == 'true' || needs.build-script-changes.outputs.kernel == 'true' || needs.kernel-config-changes.outputs.config == 'true'
 
     strategy:
