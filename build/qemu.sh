@@ -25,3 +25,4 @@ make install
 checkinstall -D -y \
     --pkgname=qemu \
     --pkgversion=8
+

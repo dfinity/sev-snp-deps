@@ -120,9 +120,9 @@ jobs:
           body: |
             | Name | Value |
             | ------------- | ------------- |
-            | Builder | `ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }}` |
-            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }})/tree/${{ github.sha }} |
-            | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
+            | Builder | [ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }}](https://github.com/${{ github.repository }}/pkgs/container/kernel-builder) |
+            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }}) |
+            | Upstream | [${{ matrix.upstream }}:${{ matrix.ref }}](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   ovmf:
     runs-on: ubuntu-latest
@@ -183,9 +183,9 @@ jobs:
           body: |
             | Name | Value |
             | ------------- | ------------- |
-            | Builder | `ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }}` |
-            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }})/tree/${{ github.sha }} |
-            | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
+            | Builder | [ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }}](https://github.com/${{ github.repository }}/pkgs/container/ovmf-builder) |
+            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }}) |
+            | Upstream | [${{ matrix.upstream }}:${{ matrix.ref }}](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   qemu:
     runs-on: ubuntu-latest
@@ -246,6 +246,6 @@ jobs:
           body: |
             | Name | Value |
             | ------------- | ------------- |
-            | Builder | `ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }}` |
-            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }})/tree/${{ github.sha }} |
-            | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
+            | Builder | [ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }}](https://github.com/${{ github.repository }}/pkgs/container/qemu-builder) |
+            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }}) |
+            | Upstream | [${{ matrix.upstream }}:${{ matrix.ref }}](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
