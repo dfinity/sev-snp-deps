@@ -114,7 +114,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
-          tag_name: kernel-${{ env.SHORT_SHA }}
+          tag_name: kernel-${{ matrix.target }}-${{ env.SHORT_SHA }}
           files: |
             ${{ github.workspace }}/out/*
           body: |
