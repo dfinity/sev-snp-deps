@@ -22,7 +22,6 @@ make O=${BUILD_DIR} distclean
 
 # Configuration
 cp "${CONFIG_PATH}" "${BUILD_DIR}"
-${CONFIG_CMD} --set-str LOCALVERSION "${LOCALVERSION}"
 
 # Build and package
 make O=${BUILD_DIR} -j$(nproc) bindeb-pkg
