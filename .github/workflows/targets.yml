@@ -107,17 +107,21 @@ jobs:
             ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }} \
               bash /local/build/kernel.sh
 
+      - name: Set short sha
+        run: echo "SHORT_SHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
+
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
-          tag_name: ${{ matrix.upstream }}-${{ matrix.ref }}
+          tag_name: kernel-${{ env.SHORT_SHA }}
           files: |
             ${{ github.workspace }}/out/*
           body: |
             | Name | Value |
             | ------------- | ------------- |
             | Builder | `ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }}` |
+            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }})/tree/${{ github.sha }} |
             | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   ovmf:
@@ -166,17 +170,21 @@ jobs:
             ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }} \
               bash /local/build/ovmf.sh
 
+      - name: Set short sha
+        run: echo "SHORT_SHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
+
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
-          tag_name: ${{ matrix.upstream }}-${{ matrix.ref }}
+          tag_name: ovmf-${{ env.SHORT_SHA }}
           files: |
             ${{ github.workspace }}/out/OVMF.fd
           body: |
             | Name | Value |
             | ------------- | ------------- |
             | Builder | `ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }}` |
+            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }})/tree/${{ github.sha }} |
             | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
   qemu:
@@ -225,15 +233,19 @@ jobs:
             ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }} \
               bash /local/build/qemu.sh
 
+      - name: Set short sha
+        run: echo "SHORT_SHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
+
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
-          tag_name: ${{ matrix.upstream }}-${{ matrix.ref }}
+          tag_name: qemu-${{ env.SHORT_SHA }}
           files: |
             ${{ github.workspace }}/build/qemu_*.deb
           body: |
             | Name | Value |
             | ------------- | ------------- |
             | Builder | `ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }}` |
+            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }})/tree/${{ github.sha }} |
             | Upstream | [`${{ matrix.upstream }}:${{ matrix.ref }}`](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
