@@ -108,7 +108,7 @@ jobs:
               bash /local/build/kernel.sh
 
       - name: Set short sha
-        run: echo "SHORT_SHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c -7)" >> $GITHUB_ENV
 
       - name: Publish
         uses: softprops/action-gh-release@v1
@@ -171,7 +171,7 @@ jobs:
               bash /local/build/ovmf.sh
 
       - name: Set short sha
-        run: echo "SHORT_SHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c -7)" >> $GITHUB_ENV
 
       - name: Publish
         uses: softprops/action-gh-release@v1
@@ -234,7 +234,7 @@ jobs:
               bash /local/build/qemu.sh
 
       - name: Set short sha
-        run: echo "SHORT_SHA=$(git rev-parse --short ${{ github.sha }})" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c -7)" >> $GITHUB_ENV
 
       - name: Publish
         uses: softprops/action-gh-release@v1
