@@ -1,4 +1,4 @@
-name: ovmf
+name: qemu
 
 on:
   push:
