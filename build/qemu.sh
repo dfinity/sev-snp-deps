@@ -24,5 +24,4 @@ make install
 # Package
 checkinstall -D -y \
     --pkgname=qemu \
-    --pkgversion=8
-
+    --pkgversion=9
