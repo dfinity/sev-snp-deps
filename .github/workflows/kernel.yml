@@ -1,15 +1,66 @@
-name: targets
+name: ovmf
 
 on:
   push:
     branches:
       - main
     paths:
-      - build/**
-      - image-ref/**
-      - cfg/.config
+      - build/kernel.sh
+      - cfg/**
+      - docker/Dockerfile.kernel
+      - image-ref/kernel.txt
 
 jobs:
+  dockerfile-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        with:
+          filters: |
+            kernel: docker/Dockerfile.kernel
+    outputs:
+      kernel: ${{ steps.filter.outputs.kernel }}
+
+  builder-kernel:
+    runs-on: ubuntu-latest
+    needs: dockerfile-changes
+    if: needs.dockerfile-changes.outputs.kernel == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          docker buildx create \
+            --use \
+            --name builder \
+            --platform linux/amd64 \
+            --driver docker-container
+
+          docker buildx build \
+            -f docker/Dockerfile.kernel \
+            -t ghcr.io/dfinity/kernel-builder:${{ github.sha }} \
+            --platform linux/amd64 \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --output type=docker,dest=archive.tar,rewrite-timestamp=true \
+                .
+
+          docker load -i archive.tar
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Publish docker image
+        run: |
+          docker push ghcr.io/dfinity/kernel-builder:${{ github.sha }}
+
   image-ref-changes:
     runs-on: ubuntu-latest
     steps:
@@ -19,12 +70,8 @@ jobs:
         with:
           filters: |
             kernel: image-ref/kernel.txt
-            ovmf: image-ref/ovmf.txt
-            qemu: image-ref/qemu.txt
     outputs:
       kernel: ${{ steps.filter.outputs.kernel }}
-      ovmf: ${{ steps.filter.outputs.ovmf }}
-      qemu: ${{  steps.filter.outputs.qemu }}
 
   build-script-changes:
     runs-on: ubuntu-latest
@@ -35,12 +82,8 @@ jobs:
         with:
           filters: |
             kernel: build/kernel.sh
-            ovmf: build/ovmf.sh
-            qemu: build/qemu.sh
     outputs:
       kernel: ${{ steps.filter.outputs.kernel }}
-      ovmf: ${{ steps.filter.outputs.ovmf }}
-      qemu: ${{  steps.filter.outputs.qemu }}
 
   kernel-config-changes:
     runs-on: ubuntu-latest
@@ -50,22 +93,21 @@ jobs:
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
         with:
           filters: |
-            config: cfg/.config
+            guest: cfg/.config.guest
+            host: cfg/.config.host
     outputs:
-      config: ${{ steps.filter.outputs.config }}
+      guest: ${{ steps.filter.outputs.guest }}
+      host: ${{ steps.filter.outputs.host }}
 
-  kernel:
+  kernel-guest:
     runs-on: ubuntu-latest
 
     needs: [image-ref-changes, build-script-changes, kernel-config-changes]
-    if: needs.image-ref-changes.outputs.kernel == 'true' || needs.build-script-changes.outputs.kernel == 'true' || needs.kernel-config-changes.outputs.config == 'true'
+    if: needs.image-ref-changes.outputs.kernel == 'true' || needs.build-script-changes.outputs.kernel == 'true' || needs.kernel-config-changes.outputs.guest == 'true'
 
     strategy:
       matrix:
         include:
-          - target: host
-            upstream: AMDESE/linux
-            ref: 05b10142ac6a1a3b02d4be018e119c2648d1da6c
           - target: guest
             upstream: AMDESE/linux
             ref: a38297e3fb012ddfa7ce0321a7e5a8daeb1872b6
@@ -98,7 +140,7 @@ jobs:
             -v ${{ github.workspace }}/local:/local \
             -v ${{ github.workspace }}/upstream:/upstream -w /upstream \
             -v ${{ github.workspace }}/out:/out \
-            -e CONFIG_PATH="/local/cfg/.config" \
+            -e CONFIG_PATH="/local/cfg/.config.${{ matrix.target }}" \
             -e OUT_DIR="/out" \
             -e LOCALVERSION="-snp-${{ matrix.target }}-$(echo ${{ matrix.ref }} | cut -c -7)" \
             -e KBUILD_BUILD_TIMESTAMP='1970-01-01' \
@@ -124,17 +166,18 @@ jobs:
             | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }}) |
             | Upstream | [${{ matrix.upstream }}:${{ matrix.ref }}](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
 
-  ovmf:
+  kernel-host:
     runs-on: ubuntu-latest
 
-    needs: [image-ref-changes, build-script-changes]
-    if: needs.image-ref-changes.outputs.ovmf == 'true' || needs.build-script-changes.outputs.ovmf == 'true'
+    needs: [image-ref-changes, build-script-changes, kernel-config-changes]
+    if: needs.image-ref-changes.outputs.kernel == 'true' || needs.build-script-changes.outputs.kernel == 'true' || needs.kernel-config-changes.outputs.host == 'true'
 
     strategy:
       matrix:
         include:
-          - upstream: AMDESE/ovmf
-            ref: 4b6ee06a090d956f80b4a92fb9bf03098a372f39
+          - target: host
+            upstream: AMDESE/linux
+            ref: 05b10142ac6a1a3b02d4be018e119c2648d1da6c
 
     steps:
       - name: Clone self
@@ -148,10 +191,9 @@ jobs:
           repository: ${{ matrix.upstream }}
           ref: ${{ matrix.ref }}
           path: ${{ github.workspace }}/upstream
-          submodules: true
 
       - name: Set builder from file
-        run: echo "BUILDER_REF=$(cat ${{ github.workspace }}/local/image-ref/ovmf.txt)" >> $GITHUB_ENV
+        run: echo "BUILDER_REF=$(cat ${{ github.workspace }}/local/image-ref/kernel.txt)" >> $GITHUB_ENV
 
       - name: Login to container registry
         run: |
@@ -165,10 +207,14 @@ jobs:
             -v ${{ github.workspace }}/local:/local \
             -v ${{ github.workspace }}/upstream:/upstream -w /upstream \
             -v ${{ github.workspace }}/out:/out \
-            -e SOURCE_DIR="/upstream" \
+            -e CONFIG_PATH="/local/cfg/.config.${{ matrix.target }}" \
             -e OUT_DIR="/out" \
-            ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }} \
-              bash /local/build/ovmf.sh
+            -e LOCALVERSION="-snp-${{ matrix.target }}-$(echo ${{ matrix.ref }} | cut -c -7)" \
+            -e KBUILD_BUILD_TIMESTAMP='1970-01-01' \
+            -e KBUILD_BUILD_HOST='host' \
+            -e SOURCE_DATE_EPOCH='0' \
+            ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }} \
+              bash /local/build/kernel.sh
 
       - name: Set short sha
         run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c -7)" >> $GITHUB_ENV
@@ -177,75 +223,12 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
-          tag_name: ovmf-${{ env.SHORT_SHA }}
+          tag_name: kernel-${{ matrix.target }}-${{ env.SHORT_SHA }}
           files: |
-            ${{ github.workspace }}/out/OVMF.fd
+            ${{ github.workspace }}/out/*
           body: |
             | Name | Value |
             | ------------- | ------------- |
-            | Builder | [ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }}](https://github.com/${{ github.repository }}/pkgs/container/ovmf-builder) |
-            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }}) |
-            | Upstream | [${{ matrix.upstream }}:${{ matrix.ref }}](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
-
-  qemu:
-    runs-on: ubuntu-latest
-
-    needs: [image-ref-changes, build-script-changes]
-    if: needs.image-ref-changes.outputs.qemu == 'true' || needs.build-script-changes.outputs.qemu == 'true'
-
-    strategy:
-      matrix:
-        include:
-          - upstream: AMDESE/qemu
-            ref: fb924a5139bff1d31520e007ef97b616af1e22a1
-
-    steps:
-      - name: Clone self
-        uses: actions/checkout@v4
-        with:
-          path: ${{ github.workspace }}/local
-
-      - name: Clone upstream
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ matrix.upstream }}
-          ref: ${{ matrix.ref }}
-          path: ${{ github.workspace }}/upstream
-          submodules: true
-
-      - name: Set builder from file
-        run: echo "BUILDER_REF=$(cat ${{ github.workspace }}/local/image-ref/qemu.txt)" >> $GITHUB_ENV
-
-      - name: Login to container registry
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
-            -u ${{ github.actor }} \
-            --password-stdin
-
-      - name: Build upstream
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}/local:/local \
-            -v ${{ github.workspace }}/upstream:/upstream \
-            -v ${{ github.workspace }}/build:/build -w /build \
-            -e SOURCE_DIR="/upstream" \
-            -e SOURCE_DATE_EPOCH=0 \
-            ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }} \
-              bash /local/build/qemu.sh
-
-      - name: Set short sha
-        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c -7)" >> $GITHUB_ENV
-
-      - name: Publish
-        uses: softprops/action-gh-release@v1
-        with:
-          token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
-          tag_name: qemu-${{ env.SHORT_SHA }}
-          files: |
-            ${{ github.workspace }}/build/qemu_*.deb
-          body: |
-            | Name | Value |
-            | ------------- | ------------- |
-            | Builder | [ghcr.io/dfinity/qemu-builder:${{ env.BUILDER_REF }}](https://github.com/${{ github.repository }}/pkgs/container/qemu-builder) |
+            | Builder | [ghcr.io/dfinity/kernel-builder:${{ env.BUILDER_REF }}](https://github.com/${{ github.repository }}/pkgs/container/kernel-builder) |
             | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }}) |
             | Upstream | [${{ matrix.upstream }}:${{ matrix.ref }}](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |

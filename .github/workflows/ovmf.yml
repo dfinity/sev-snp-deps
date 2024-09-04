@@ -1,0 +1,148 @@
+name: ovmf
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - build/ovmf.sh
+      - docker/Dockerfile.ovmf
+      - image-ref/ovmf.txt
+
+jobs:
+  dockerfile-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        with:
+          filters: |
+            ovmf: docker/Dockerfile.ovmf
+    outputs:
+      ovmf: ${{ steps.filter.outputs.ovmf }}
+
+  builder-ovmf:
+    runs-on: ubuntu-latest
+    needs: dockerfile-changes
+    if: needs.dockerfile-changes.outputs.ovmf == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          docker buildx create \
+            --use \
+            --name builder \
+            --platform linux/amd64 \
+            --driver docker-container
+
+          docker buildx build \
+            -f docker/Dockerfile.ovmf \
+            -t ghcr.io/dfinity/ovmf-builder:${{ github.sha }} \
+            --platform linux/amd64 \
+            --build-arg SOURCE_DATE_EPOCH=0 \
+            --output type=docker,dest=archive.tar,rewrite-timestamp=true \
+                .
+
+          docker load -i archive.tar
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Publish docker image
+        run: |
+          docker push ghcr.io/dfinity/ovmf-builder:${{ github.sha }}
+
+  image-ref-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        with:
+          filters: |
+            ovmf: image-ref/ovmf.txt
+    outputs:
+      ovmf: ${{ steps.filter.outputs.ovmf }}
+
+  build-script-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36
+        with:
+          filters: |
+            ovmf: build/ovmf.sh
+    outputs:
+      ovmf: ${{ steps.filter.outputs.ovmf }}
+
+  ovmf:
+    runs-on: ubuntu-latest
+
+    needs: [image-ref-changes, build-script-changes]
+    if: needs.image-ref-changes.outputs.ovmf == 'true' || needs.build-script-changes.outputs.ovmf == 'true'
+
+    strategy:
+      matrix:
+        include:
+          - upstream: AMDESE/ovmf
+            ref: 4b6ee06a090d956f80b4a92fb9bf03098a372f39
+
+    steps:
+      - name: Clone self
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/local
+
+      - name: Clone upstream
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.upstream }}
+          ref: ${{ matrix.ref }}
+          path: ${{ github.workspace }}/upstream
+          submodules: true
+
+      - name: Set builder from file
+        run: echo "BUILDER_REF=$(cat ${{ github.workspace }}/local/image-ref/ovmf.txt)" >> $GITHUB_ENV
+
+      - name: Login to container registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.actor }} \
+            --password-stdin
+
+      - name: Build upstream
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}/local:/local \
+            -v ${{ github.workspace }}/upstream:/upstream -w /upstream \
+            -v ${{ github.workspace }}/out:/out \
+            -e SOURCE_DIR="/upstream" \
+            -e OUT_DIR="/out" \
+            ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }} \
+              bash /local/build/ovmf.sh
+
+      - name: Set short sha
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c -7)" >> $GITHUB_ENV
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
+          tag_name: ovmf-${{ env.SHORT_SHA }}
+          files: |
+            ${{ github.workspace }}/out/OVMF.fd
+          body: |
+            | Name | Value |
+            | ------------- | ------------- |
+            | Builder | [ghcr.io/dfinity/ovmf-builder:${{ env.BUILDER_REF }}](https://github.com/${{ github.repository }}/pkgs/container/ovmf-builder) |
+            | Local | [${{ github.repository }}:${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }}) |
+            | Upstream | [${{ matrix.upstream }}:${{ matrix.ref }}](https://github.com/${{ matrix.upstream }}/tree/${{ matrix.ref }}) |
