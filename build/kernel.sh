@@ -21,7 +21,7 @@ fi
 make O=${BUILD_DIR} distclean
 
 # Configuration
-cp "${CONFIG_PATH}" "${BUILD_DIR}"
+cp "${CONFIG_PATH}" "${BUILD_DIR}/.config"
 
 # Build and package
 make O=${BUILD_DIR} -j$(nproc) bindeb-pkg
