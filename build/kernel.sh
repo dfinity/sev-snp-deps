@@ -32,3 +32,4 @@ find "${BUILD_DIR}/.." -name "linux-image*.deb" -not -name "*dbg*" -exec dpkg -i
 # Output
 find "${BUILD_DIR}/.." -name "linux-image*.deb" -not -name "*dbg*" | xargs -I {} cp {} "${OUT_DIR}"
 find "/boot" -name "initrd*" -or -name "vmlinuz*" -or -name "config*" | xargs -I {} cp {} "${OUT_DIR}"
+

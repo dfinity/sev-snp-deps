@@ -110,7 +110,7 @@ jobs:
         include:
           - target: guest
             upstream: AMDESE/linux
-            ref: a38297e3fb012ddfa7ce0321a7e5a8daeb1872b6
+            ref: 0c3836482481200ead7b416ca80c68a29cfdaabd
 
     steps:
       - name: Clone self
@@ -177,7 +177,7 @@ jobs:
         include:
           - target: host
             upstream: AMDESE/linux
-            ref: 05b10142ac6a1a3b02d4be018e119c2648d1da6c
+            ref: 85ef1ac039412c99a2de119f977a3cab6079533d
 
     steps:
       - name: Clone self
