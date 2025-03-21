@@ -94,7 +94,7 @@ jobs:
       matrix:
         include:
           - upstream: AMDESE/ovmf
-            ref: 4b6ee06a090d956f80b4a92fb9bf03098a372f39
+            ref: fbe0805b2091393406952e84724188f8c1941837
 
     steps:
       - name: Clone self
