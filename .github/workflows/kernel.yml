@@ -1,6 +1,7 @@
 name: kernel
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -177,7 +178,7 @@ jobs:
         include:
           - target: host
             upstream: AMDESE/linux
-            ref: 85ef1ac039412c99a2de119f977a3cab6079533d
+            ref: ffd294d346d185b70e28b1a28abe367bbfe53c04
 
     steps:
       - name: Clone self
