@@ -95,7 +95,7 @@ jobs:
       matrix:
         include:
           - upstream: AMDESE/qemu
-            ref: 22f8479a3f3c0799980cb9fb230f0b44be5f5eef
+            ref: 24503e2fb30209a4f0646f01d8877832843bb241
 
     steps:
       - name: Clone self
