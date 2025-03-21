@@ -1,6 +1,7 @@
 name: kernel
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
