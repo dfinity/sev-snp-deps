@@ -111,7 +111,7 @@ jobs:
         include:
           - target: guest
             upstream: AMDESE/linux
-            ref: 0c3836482481200ead7b416ca80c68a29cfdaabd
+            ref: ffd294d346d185b70e28b1a28abe367bbfe53c04
 
     steps:
       - name: Clone self
