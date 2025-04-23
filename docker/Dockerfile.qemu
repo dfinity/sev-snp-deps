@@ -26,9 +26,9 @@ RUN \
     : "Clean up for improving reproducibility (optional)" && \
     rm -rf /var/log/* /var/cache/ldconfig/aux-cache
 
-ARG LIBSLIRP_VERSION=v4.8.0
+ARG LIBSLIRP_VERSION=v4.9.0
 ARG LIBSLIRP_SOURCE=https://gitlab.freedesktop.org/slirp/libslirp/-/archive/${LIBSLIRP_VERSION}/libslirp-${LIBSLIRP_VERSION}.tar.gz
-ARG LIBSLIRP_CHKSUM=sha256:2a98852e65666db313481943e7a1997abff0183bd9bea80caec1b5da89fda28c
+ARG LIBSLIRP_CHKSUM=sha256:e744a32767668fe80e3cb3bd75d10d501f981e98c26a1f318154a97e99cdac22
 
 ADD --checksum=${LIBSLIRP_CHKSUM} ${LIBSLIRP_SOURCE} .
 
@@ -40,12 +40,12 @@ RUN \
   mv ./build/libslirp.a /libslirp.a && \
   cd .. && rm -r libslirp-${LIBSLIRP_VERSION}
 
-FROM debian:trixie-20240513-slim
+FROM debian:trixie-20250317-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# https://snapshot.debian.org/archive/debian/20240515T144351Z/
-ARG SNAPSHOT=20240515T144351Z
+# https://snapshot.debian.org/archive/debian/20250321T024612Z/
+ARG SNAPSHOT=20250321T024612Z
 
 RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -74,8 +74,9 @@ RUN \
 
 COPY --from=libslirp-static libslirp.a .
 
-ARG LIBSLIRP_CHKSUM=a740ddca3fc10860c51330905cb94ffb0a083c625cd8dd2ba7c1d5d748e05e3d
+# ARG LIBSLIRP_CHKSUM=a740ddca3fc10860c51330905cb94ffb0a083c625cd8dd2ba7c1d5d748e05e3d
 
 RUN \
-  echo "${LIBSLIRP_CHKSUM}  libslirp.a" | shasum -c && \
+  echo $(shasum -a 256 libslirp.a) && \
+  # echo "${LIBSLIRP_CHKSUM}  libslirp.a" | shasum -c && \
   mv libslirp.a /lib/x86_64-linux-gnu/
