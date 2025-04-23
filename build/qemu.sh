@@ -13,6 +13,7 @@ ${SOURCE_DIR}/configure \
     --target-list=x86_64-softmmu \
     --python=python3 \
     --disable-gio \
+    --disable-pixman \
     --static
 
 # Build
