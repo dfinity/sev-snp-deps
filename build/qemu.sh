@@ -14,6 +14,7 @@ ${SOURCE_DIR}/configure \
     --python=python3 \
     --disable-gio \
     --disable-pixman \
+    --disable-oss \
     --static
 
 # Build
@@ -25,4 +26,4 @@ make install
 # Package
 checkinstall -D -y \
     --pkgname=qemu \
-    --pkgversion=9
+    --pkgversion=10
