@@ -13,6 +13,8 @@ ${SOURCE_DIR}/configure \
     --target-list=x86_64-softmmu \
     --python=python3 \
     --disable-gio \
+    --disable-pixman \
+    --disable-oss \
     --static
 
 # Build
@@ -24,4 +26,4 @@ make install
 # Package
 checkinstall -D -y \
     --pkgname=qemu \
-    --pkgversion=9
+    --pkgversion=10
