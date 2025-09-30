@@ -77,5 +77,5 @@ COPY --from=libslirp-static libslirp.a .
 ARG LIBSLIRP_CHKSUM=efd9d0c98ca05da3a8ea64ad0e7701bd8f447b81816c45939a33b8a676c2ccb4
 
 RUN \
-  echo "${LIBSLIRP_CHKSUM}  libslirp.a" | shasum -c && \
+  shasum -a 256 libslirp.a && echo "${LIBSLIRP_CHKSUM}  libslirp.a" | shasum -c && \
   mv libslirp.a /lib/x86_64-linux-gnu/
