@@ -40,12 +40,12 @@ RUN \
   mv ./build/libslirp.a /libslirp.a && \
   cd .. && rm -r libslirp-${LIBSLIRP_VERSION}
 
-FROM debian:trixie-20250317-slim
+FROM debian:trixie-20250929-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # https://snapshot.debian.org/archive/debian/20250321T024612Z/
-ARG SNAPSHOT=20250321T024612Z
+ARG SNAPSHOT=20250930T083630Z
 
 RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -74,7 +74,7 @@ RUN \
 
 COPY --from=libslirp-static libslirp.a .
 
-ARG LIBSLIRP_CHKSUM=efd9d0c98ca05da3a8ea64ad0e7701bd8f447b81816c45939a33b8a676c2ccb4
+ARG LIBSLIRP_CHKSUM=fc77768737b4b7dcd36dd138068d957c762745b996e02f9656cfaba4ee6a24bd
 
 RUN \
   shasum -a 256 libslirp.a && echo "${LIBSLIRP_CHKSUM}  libslirp.a" | shasum -c && \
