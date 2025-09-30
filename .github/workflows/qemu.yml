@@ -95,7 +95,7 @@ jobs:
       matrix:
         include:
           - upstream: qemu/qemu
-            ref: 7c949c53e936aa3a658d84ab53bae5cadaa5d59c
+            ref: 80949aa0e355f440f8e20446f81c9826bf4f13ca
 
     steps:
       - name: Clone self
