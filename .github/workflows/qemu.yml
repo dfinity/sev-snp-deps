@@ -28,7 +28,7 @@ jobs:
     needs: dockerfile-changes
     if: needs.dockerfile-changes.outputs.qemu == 'true'
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -87,6 +87,9 @@ jobs:
 
   qemu:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
 
     needs: [image-ref-changes, build-script-changes]
     if: needs.image-ref-changes.outputs.qemu == 'true' || needs.build-script-changes.outputs.qemu == 'true'
@@ -137,7 +140,6 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-          token: ${{ secrets.RELEASE_ACCESS_TOKEN }}
           tag_name: qemu-${{ env.SHORT_SHA }}
           files: |
             ${{ github.workspace }}/build/qemu_*.deb
