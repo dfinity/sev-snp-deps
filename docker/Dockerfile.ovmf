@@ -1,27 +1,27 @@
-FROM debian:trixie-20250317-slim
+FROM debian:trixie-20250929-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 # https://snapshot.debian.org/archive/debian/20250321T024612Z/
-ARG SNAPSHOT=20250321T024612Z
+ARG SNAPSHOT=20250930T083630Z
 
 RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    : "Enabling snapshot" && \
-    sed -i -e '/Types: deb/ a\Snapshot: true' /etc/apt/sources.list.d/debian.sources && \
-    : "Enabling cache" && \
-    rm -f /etc/apt/apt.conf.d/docker-clean && \
-    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache && \
-    : "Fetching the snapshot and installing ca-certificates in one command" && \
-    apt install --update --snapshot "${SNAPSHOT}" -o Acquire::Check-Valid-Until=false -o Acquire::https::Verify-Peer=false -y ca-certificates && \
-    : "Install dependencies" && \
-    apt install --snapshot "${SNAPSHOT}" -y \
-      build-essential \
-      iasl \
-      nasm \
-      python-is-python3 \
-      uuid-dev \
-    && \
-    : "Clean up for improving reproducibility (optional)" && \
-    rm -rf /var/log/* /var/cache/ldconfig/aux-cache
+  : "Enabling snapshot" && \
+  sed -i -e '/Types: deb/ a\Snapshot: true' /etc/apt/sources.list.d/debian.sources && \
+  : "Enabling cache" && \
+  rm -f /etc/apt/apt.conf.d/docker-clean && \
+  echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' >/etc/apt/apt.conf.d/keep-cache && \
+  : "Fetching the snapshot and installing ca-certificates in one command" && \
+  apt install --update --snapshot "${SNAPSHOT}" -o Acquire::Check-Valid-Until=false -o Acquire::https::Verify-Peer=false -y ca-certificates && \
+  : "Install dependencies" && \
+  apt install --snapshot "${SNAPSHOT}" -y \
+  build-essential \
+  iasl \
+  nasm \
+  python-is-python3 \
+  uuid-dev \
+  && \
+  : "Clean up for improving reproducibility (optional)" && \
+  rm -rf /var/log/* /var/cache/ldconfig/aux-cache
