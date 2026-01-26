@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - frankdavid/qemu-10.2
     paths:
       - build/qemu.sh
       - docker/Dockerfile.qemu
@@ -98,7 +99,7 @@ jobs:
       matrix:
         include:
           - upstream: qemu/qemu
-            ref: 80949aa0e355f440f8e20446f81c9826bf4f13ca
+            ref: 698104725efad4b29079d857dfdebbd804e34c99
 
     steps:
       - name: Clone self
